@@ -1,0 +1,18 @@
+{
+  "name": "listing-log",
+  "version": "0.0.1",
+  "description": "A Discord bot that scrapes a few select sites for housing listings. Whenever it finds something new, it sends it to a channel for easy viewing.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Braden Schulz",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.11.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.44.0"
+  }
+}
