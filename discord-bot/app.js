@@ -1,19 +1,36 @@
-// Require the necessary discord.js classes
-const { Client, Events, GatewayIntentBits } = require('discord.js');
-const dotenv = require('dotenv');
+import 'dotenv/config';
+import {
+	Client,
+	Events,
+	GatewayIntentBits,
+} from 'discord.js';
 
-dotenv.config();
+const SEARCHWAIT_MIN = 5;						// Minimum time to wait between searches in minutes
+const SEARCHWAIT = SEARCHWAIT_MIN*60*1000;		// SEARCHWAIT_MIN in milliseconds
 
-// Create a new client instance
+let statusChannel;
+let searchChannel;
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+client.login(process.env.DISCORD_TOKEN);
 
-// Notify in console and status channel after starting
+// Note in console and status channel and begin searching once ready
 client.once(Events.ClientReady, c => {
 	console.log(`Successfully started logged in as ${c.user.tag}`);
-	const channel = c.channels.cache.get(`${process.env.STATUS_CHANNEL_ID}`);
-	channel.send('Started!');
+
+	statusChannel = c.channels.cache.get(`${process.env.STATUS_CHANNEL_ID}`);
+	searchChannel = c.channels.cache.get(`${process.env.SEARCH_CHANNEL_ID}`);
+	if (statusChannel === undefined || searchChannel === undefined) 
+		throw new Error("Status or search channel not found! Did you supply the right ID's in .env?");
+	
+	statusChannel.send('Started!');
+	sendListings();
+	// Wait SEARCHWAIT plus random timelength between [1, SEARCHWAIT] between each search (to seem human)
+	setInterval(sendListings, SEARCHWAIT + Math.floor(Math.random() * SEARCHWAIT) + 1);
 });
 
-
-// Log in to Discord with your client's token
-client.login(process.env.DISCORD_TOKEN);
+// sendListings(): Scrape for new listings and send any that are found to the search channel
+function sendListings() {
+	console.log('Searching for listings...');
+	statusChannel.send('Searching...');
+}

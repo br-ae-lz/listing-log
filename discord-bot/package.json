@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "A Discord bot that scrapes a few select sites for housing listings. Whenever it finds something new, it sends it to a channel for easy viewing.",
   "main": "app.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
