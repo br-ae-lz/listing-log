@@ -2,6 +2,7 @@ import 'dotenv/config';
 import {
 	Client,
 	Events,
+	Collection,
 	GatewayIntentBits,
 	EmbedBuilder,
 } from 'discord.js';
@@ -21,6 +22,10 @@ let searchSite2 = true;
 
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+client.commands = new Collection();
+
+
+
 client.login(process.env.DISCORD_TOKEN);
 
 // Startup routine: Notify in appropriate channels and begin searching
@@ -61,7 +66,7 @@ function sendListings() {
 				.addFields({ name: site1Listings[i].subheading, value: site1Listings[i].description})
 				.setThumbnail(site1Listings[i].image)
 				.setURL(site1Listings[i].url)
-				.setFooter({ text: site1Listings[i].postDate})
+				.setFooter({ text: site1Listings[i].postDate + '  •  id: ' + site1Listings[i].id})
 				.setTimestamp()
 			site1Embeds.push(currentEmbed);
 		}
@@ -84,7 +89,7 @@ function sendListings() {
 				.addFields({ name: site2Listings[i].subheading, value: site2Listings[i].description})
 				.setThumbnail(site2Listings[i].image)
 				.setURL(site2Listings[i].url)
-				.setFooter({ text: site2Listings[i].postDate})
+				.setFooter({ text: site2Listings[i].postDate + '  •  id: ' + site2Listings[i].id})
 				.setTimestamp()
 			site2Embeds.push(currentEmbed);
 		}
