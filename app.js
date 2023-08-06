@@ -3,28 +3,35 @@ import {
 	Client,
 	Events,
 	Collection,
-	GatewayIntentBits,
-	EmbedBuilder,
+	GatewayIntentBits
 } from 'discord.js';
-import { getSite1Listings } from './scraper/site1/site1-scraper.js';
-import { getSite2Listings } from './scraper/site2/site2-scraper.js';
-
-const SEARCHWAIT_MIN = 5;						// Minimum time to wait between searches in minutes
-const SEARCHWAIT = SEARCHWAIT_MIN*60*1000;		// SEARCHWAIT_MIN in milliseconds
-const LISTINGS_PER_SEARCH = 5;
-
-let statusChannel;
-let searchChannel;
-
-// Default options block
-let searchSite1 = true;
-let searchSite2 = true;
+import { readdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { sendListings, channels } from './searchutils.js';
 
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
 
+// Get a full path to this directory in the ES6 way
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
+// Import each command for which there is a complete source file in the command directory
+const commandsPath = join(__dirname, 'commands');
+const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+	const filePath = join(commandsPath, file);
+	const { command } = await import(`./commands/${file}`);
+	
+	if ('data' in command && 'execute' in command) {
+		client.commands.set(command.data.name, command)
+	} else {
+		console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+	}
+}
 
 client.login(process.env.DISCORD_TOKEN);
 
@@ -32,69 +39,37 @@ client.login(process.env.DISCORD_TOKEN);
 client.once(Events.ClientReady, c => {
 	console.log(`Successfully started logged in as ${c.user.tag}`);
 
-	statusChannel = c.channels.cache.get(`${process.env.STATUS_CHANNEL_ID}`);
-	searchChannel = c.channels.cache.get(`${process.env.SEARCH_CHANNEL_ID}`);
-	if (statusChannel === undefined || searchChannel === undefined) 
+	channels.statusChannel = c.channels.cache.get(`${process.env.STATUS_CHANNEL_ID}`);
+	channels.searchChannel = c.channels.cache.get(`${process.env.SEARCH_CHANNEL_ID}`);
+	if (channels.statusChannel === undefined || channels.searchChannel === undefined) 
 		throw new Error("Status or search channel not found! Did you supply the right ID's in .env?");
 	
-	statusChannel.send('Started!');
+	channels.statusChannel.send('Started!');
 	sendListings();
 	// Wait SEARCHWAIT plus random timelength between [1, SEARCHWAIT] between each search (to seem human)
-	//setInterval(sendListings, SEARCHWAIT + Math.floor(Math.random() * SEARCHWAIT) + 1);
+	setInterval(sendListings, SEARCHWAIT + Math.floor(Math.random() * SEARCHWAIT) + 1);
 });
 
+// Interaction routine: Handle slash commands
+client.on(Events.InteractionCreate, async interaction => {
+	if (!interaction.isChatInputCommand()) return;
+	console.log(interaction);
 
-/********************************************************************************************************
- * @brief Scrapes for new listings and sends any that are found to the search channel.
- ********************************************************************************************************/
-function sendListings() {
-	console.log('Searching for listings...');
-	statusChannel.send('Searching...');
+	const command = interaction.client.commands.get(interaction.commandName);
 
-	if (searchSite1) {
-		let site1Listings = getSite1Listings();
-		let site1Embeds = [];
-		
-		// Propagate embed array with scraped listing data
-		for (let i = 0; i < LISTINGS_PER_SEARCH; ++i) {
-			if (site1Listings[i] === undefined) 
-				continue;
-
-			const currentEmbed = new EmbedBuilder()
-				.setColor(0xc4c4c4)
-				.setTitle(site1Listings[i].title)
-				.addFields({ name: site1Listings[i].subheading, value: site1Listings[i].description})
-				.setThumbnail(site1Listings[i].image)
-				.setURL(site1Listings[i].url)
-				.setFooter({ text: site1Listings[i].postDate + '  •  id: ' + site1Listings[i].id})
-				.setTimestamp()
-			site1Embeds.push(currentEmbed);
-		}
-
-		if (site1Embeds.length > 0)
-			searchChannel.send({ content: '# Site 1', embeds: site1Embeds });
+	if (!command) {
+		console.error(`No command matching ${interaction.commandName} was found.`);
+		return;
 	}
-	
-	if (searchSite2) {
-		let site2Listings = getSite2Listings();
-		let site2Embeds = [];
-		
-		for (let i = 0; i < LISTINGS_PER_SEARCH; ++i) {
-			if (site2Listings[i] === undefined) 
-				continue;
 
-			const currentEmbed = new EmbedBuilder()
-				.setColor(0xc4c4c4)
-				.setTitle(site2Listings[i].title)
-				.addFields({ name: site2Listings[i].subheading, value: site2Listings[i].description})
-				.setThumbnail(site2Listings[i].image)
-				.setURL(site2Listings[i].url)
-				.setFooter({ text: site2Listings[i].postDate + '  •  id: ' + site2Listings[i].id})
-				.setTimestamp()
-			site2Embeds.push(currentEmbed);
+	try {
+		await command.execute(interaction);
+	} catch (error) {
+		console.error(error);
+		if (interaction.replied || interaction.deferred) {
+			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+		} else {
+			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
 		}
-
-		if (site2Embeds.length > 0)
-			searchChannel.send({ content: '# Site 2', embeds: site2Embeds });
 	}
-}
+});
