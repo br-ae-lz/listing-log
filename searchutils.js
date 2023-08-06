@@ -3,11 +3,6 @@ import { getSite1Listings } from './scraper/site1/site1-scraper.js';
 import { getSite2Listings } from './scraper/site2/site2-scraper.js';
 
 
-const SEARCHWAIT_MIN = 5;						// Minimum time to wait between searches in minutes
-const SEARCHWAIT = SEARCHWAIT_MIN*60*1000;		// SEARCHWAIT_MIN in milliseconds
-
-const LISTINGS_PER_SEARCH = 5;
-
 const channels = {
 	statusChannel: undefined,
 	searchChannel: undefined
@@ -19,16 +14,23 @@ const searchConfig = {
 	searchSite2: true,
 	includeAllFemale: false,
 	debugMode: false,
-	autoSearch: true
+	autoSearch: true,
+	startupSearch: true,
+	numListings: 5
 };
 
-export { channels, searchConfig };
+let searchWait = 5;							// Minimum time to wait between searches in minutes
+let searchWait_ms = searchWait*60*1000;		// searchWait in milliseconds
+let searchTimeout;
 
 let curDate = Date.now();
 let lastDate = Date.now();
 
+export { channels, searchConfig, searchTimeout};
+
 /********************************************************************************************************
- * @brief Scrapes for new listings and sends any that are found to the search channel.
+ * Scrapes for new listings and sends any that are found to the search channel. Upon 
+ * completion with autoSearch enabled, schedules next call with pseudorandom timeout.
  ********************************************************************************************************/
 export function sendListings() {
 	console.log('Searching for listings...');
@@ -41,7 +43,7 @@ export function sendListings() {
 		let site1Embeds = [];
 		
 		// Propagate embed array with scraped listing data
-		for (let i = 0; i < LISTINGS_PER_SEARCH; ++i) {
+		for (let i = 0; i < searchConfig.numListings; ++i) {
 			if (site1Listings[i] === undefined) 
 				continue;
 
@@ -64,7 +66,7 @@ export function sendListings() {
 		let site2Listings = getSite2Listings();
 		let site2Embeds = [];
 		
-		for (let i = 0; i < LISTINGS_PER_SEARCH; ++i) {
+		for (let i = 0; i < searchConfig.numListings; ++i) {
 			if (site2Listings[i] === undefined) 
 				continue;
 
@@ -82,4 +84,25 @@ export function sendListings() {
 		if (site2Embeds.length > 0)
 			channels.searchChannel.send({ content: '# Site 2', embeds: site2Embeds });
 	}
+
+	if (searchConfig.autoSearch)
+		scheduleSearch();
+}
+
+/********************************************************************************************************
+ * Schedules a future call to sendListings. (Basically, an auto-search.)
+ * 
+ * Wait time is searchWait plus a random length of time whose upper bound is 
+ * searchWait, added to ease traffic and make automated requests seem more human.
+ ********************************************************************************************************/
+export function scheduleSearch() {
+		searchTimeout = setTimeout(sendListings, searchWait_ms + Math.floor(Math.random() * searchWait_ms) + 1);
+}
+
+/********************************************************************************************************
+ * Assigns a new value to searchWait (and, consequently, searchWait_ms.)
+ ********************************************************************************************************/
+export function setSearchWait(newValue) {
+	searchWait = newValue;
+	searchWait_ms = searchWait*60*1000;
 }

@@ -8,7 +8,12 @@ import {
 import { readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { sendListings, channels } from './searchutils.js';
+import { 
+	sendListings, 
+	channels, 
+	searchConfig, 
+	scheduleSearch
+} from './searchutils.js';
 
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -35,7 +40,7 @@ for (const file of commandFiles) {
 
 client.login(process.env.DISCORD_TOKEN);
 
-// Startup routine: Notify in appropriate channels and begin searching
+// Startup routine: Notify in appropriate channels and begin searching based on config
 client.once(Events.ClientReady, c => {
 	console.log(`Successfully started logged in as ${c.user.tag}`);
 
@@ -45,9 +50,9 @@ client.once(Events.ClientReady, c => {
 		throw new Error("Status or search channel not found! Did you supply the right ID's in .env?");
 	
 	channels.statusChannel.send('Started!');
-	sendListings();
-	// Wait SEARCHWAIT plus random timelength between [1, SEARCHWAIT] between each search (to seem human)
-	setInterval(sendListings, SEARCHWAIT + Math.floor(Math.random() * SEARCHWAIT) + 1);
+
+	if (searchConfig.startupSearch) sendListings();
+	else if (searchConfig.autoSearch) scheduleSearch();
 });
 
 // Interaction routine: Handle slash commands

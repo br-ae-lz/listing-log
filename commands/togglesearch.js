@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
+import { searchTimeout, searchConfig, scheduleSearch } from '../searchutils.js';
 
 export const command = {
 	data: new SlashCommandBuilder()
@@ -6,6 +7,14 @@ export const command = {
 		.setDescription('Toggle automatic searching'),
 
 	async execute(interaction) {
-		// TBD
+		searchConfig.autoSearch = !searchConfig.autoSearch;
+
+		if (!searchConfig.autoSearch) {
+			clearTimeout(searchTimeout);
+			await interaction.reply('Automatic searching stopped.');
+		} else {
+			scheduleSearch();
+			await interaction.reply('Automatic searching started.');
+		}
 	},
 }
