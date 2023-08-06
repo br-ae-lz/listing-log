@@ -10,33 +10,31 @@ const channels = {
 
 // Default search configs (exported to be changed by commands during runtime)
 const searchConfig = {
-	searchSite1: true,
-	searchSite2: true,
+	searchSite1: false,			// Listing filtering configs
+	searchSite2: false,
 	includeAllFemale: false,
-	debugMode: false,
-	autoSearch: true,
+	debugMode: false,			
+	
+	autoSearch: false,			// Search timing configs
 	startupSearch: true,
-	numListings: 5
+
+	numListings: 5,				// Search formatting configs
+	descCharLimit: Infinity
 };
 
 let searchWait = 5;							// Minimum time to wait between searches in minutes
 let searchWait_ms = searchWait*60*1000;		// searchWait in milliseconds
 let searchTimeout;
 
-let curDate = Date.now();
-let lastDate = Date.now();
-
-export { channels, searchConfig, searchTimeout};
+export { channels, searchConfig, searchTimeout };
 
 /********************************************************************************************************
  * Scrapes for new listings and sends any that are found to the search channel. Upon 
  * completion with autoSearch enabled, schedules next call with pseudorandom timeout.
  ********************************************************************************************************/
 export function sendListings() {
-	console.log('Searching for listings...');
-	curDate = Date.now();
-	channels.statusChannel.send(`Searching ${curDate - lastDate} following previous...`);
-	lastDate = curDate;
+	console.log(`Searching for listings...`);
+	channels.statusChannel.send(`Searching...`);
 
 	if (searchConfig.searchSite1) {
 		let site1Listings = getSite1Listings();

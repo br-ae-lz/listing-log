@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { sendListings } from '../searchutils.js';
+import { sendListings, searchTimeout } from '../searchutils.js';
 
 export const command = {
 	data: new SlashCommandBuilder()
@@ -8,6 +8,8 @@ export const command = {
 
 	async execute(interaction) {
 		await interaction.reply('\u200b');
+
+		clearTimeout(searchTimeout);
 		sendListings();
 	},
 }
