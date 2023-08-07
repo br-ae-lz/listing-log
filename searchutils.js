@@ -12,7 +12,7 @@ const channels = {
 const searchConfig = {
 	searchSite1: false,			// Listing filtering configs
 	searchSite2: false,
-	includeAllFemale: false,
+    excludeAllFemale: true,
 	debugMode: false,			
 	
 	autoSearch: false,			// Search timing configs
