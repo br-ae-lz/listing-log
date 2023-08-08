@@ -41,7 +41,7 @@ for (const file of commandFiles) {
 client.login(process.env.DISCORD_TOKEN);
 
 // Startup routine: Notify in appropriate channels and begin searching based on config
-client.once(Events.ClientReady, c => {
+client.once(Events.ClientReady, async c => {
 	console.log(`Successfully started logged in as ${c.user.tag}`);
 
 	channels.statusChannel = c.channels.cache.get(`${process.env.STATUS_CHANNEL_ID}`);
@@ -49,9 +49,9 @@ client.once(Events.ClientReady, c => {
 	if (channels.statusChannel === undefined || channels.searchChannel === undefined) 
 		throw new Error("Status or search channel not found! Did you supply the right ID's in .env?");
 	
-	channels.statusChannel.send('Started!');
+	await channels.statusChannel.send('Started!');
 
-	if (searchConfig.startupSearch) sendListings();
+	if (searchConfig.startupSearch) await sendListings();
 	else if (searchConfig.autoSearch) scheduleSearch();
 });
 

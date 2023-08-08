@@ -10,7 +10,7 @@ const channels = {
 
 // Default search configs (exported to be changed by commands during runtime)
 const searchConfig = {
-	searchSite1: false,			// Listing filtering configs
+	searchSite1: true,			// Listing filtering configs
 	searchSite2: false,
     excludeAllFemale: true,
 	debugMode: false,			
@@ -19,7 +19,7 @@ const searchConfig = {
 	startupSearch: true,
 
 	numListings: 5,				// Search formatting configs
-	descCharLimit: Infinity
+	descCharLimit: 150
 };
 
 let searchWait = 5;							// Minimum time to wait between searches in minutes
@@ -32,37 +32,42 @@ export { channels, searchConfig, searchTimeout };
  * Scrapes for new listings and sends any that are found to the search channel. Upon 
  * completion with autoSearch enabled, schedules next call with pseudorandom timeout.
  ********************************************************************************************************/
-export function sendListings() {
+export async function sendListings() {
 	console.log(`Searching for listings...`);
-	channels.statusChannel.send(`Searching...`);
+	await channels.statusChannel.send(`Searching...`);
 
 	if (searchConfig.searchSite1) {
-		let site1Listings = getSite1Listings();
-		let site1Embeds = [];
-		
-		// Propagate embed array with scraped listing data
-		for (let i = 0; i < searchConfig.numListings; ++i) {
-			if (site1Listings[i] === undefined) 
-				continue;
+		try {
+			let site1Embeds = [];
+			let site1Listings = await getSite1Listings();
+			
+			// Propagate embed array with scraped listing data
+			for (let i = 0; i < searchConfig.numListings; ++i) {
+				if (site1Listings[i] === undefined) 
+					continue;
 
-			const currentEmbed = new EmbedBuilder()
-				.setColor(0xc4c4c4)
-				.setTitle(site1Listings[i].title)
-				.addFields({ name: site1Listings[i].subheading, value: site1Listings[i].description})
-				.setThumbnail(site1Listings[i].image)
-				.setURL(site1Listings[i].url)
-				.setFooter({ text: site1Listings[i].postDate + '  •  id: ' + site1Listings[i].id})
-				.setTimestamp()
-			site1Embeds.push(currentEmbed);
+				const currentEmbed = new EmbedBuilder()
+					.setColor(0xc4c4c4)
+					.setTitle(site1Listings[i].title)
+					.addFields({ name: site1Listings[i].subheading, value: site1Listings[i].description})
+					.setThumbnail(site1Listings[i].image)
+					.setURL(site1Listings[i].url)
+					.setFooter({ text: site1Listings[i].postDate + '  •  id: ' + site1Listings[i].id})
+				site1Embeds.push(currentEmbed);
+			}
+
+			if (site1Embeds.length > 0)
+				await channels.searchChannel.send({ content: '# Site 1', embeds: site1Embeds });
 		}
-
-		if (site1Embeds.length > 0)
-			channels.searchChannel.send({ content: '# Site 1', embeds: site1Embeds });
+		catch (e) {
+			console.log(e);
+			await channels.statusChannel.send('Site 1 encountered an error while fetching listings!');
+		}
 	}
 
 	if (searchConfig.searchSite2) {
-		let site2Listings = getSite2Listings();
 		let site2Embeds = [];
+		let site2Listings = await getSite2Listings();
 		
 		for (let i = 0; i < searchConfig.numListings; ++i) {
 			if (site2Listings[i] === undefined) 
@@ -75,12 +80,11 @@ export function sendListings() {
 				.setThumbnail(site2Listings[i].image)
 				.setURL(site2Listings[i].url)
 				.setFooter({ text: site2Listings[i].postDate + '  •  id: ' + site2Listings[i].id})
-				.setTimestamp()
 			site2Embeds.push(currentEmbed);
 		}
 
 		if (site2Embeds.length > 0)
-			channels.searchChannel.send({ content: '# Site 2', embeds: site2Embeds });
+			await channels.searchChannel.send({ content: '# Site 2', embeds: site2Embeds });
 	}
 
 	if (searchConfig.autoSearch)

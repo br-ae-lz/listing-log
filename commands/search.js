@@ -10,6 +10,6 @@ export const command = {
 		await interaction.reply('\u200b');
 
 		clearTimeout(searchTimeout);
-		sendListings();
+		await sendListings();
 	},
 }
