@@ -6,7 +6,11 @@ import {
 	StringSelectMenuBuilder,
 	StringSelectMenuOptionBuilder
 } from 'discord.js';
-import { searchConfig, searchTimeout } from '../searchutils.js';
+import { 
+	searchConfig, 
+	searchTimeout,
+	scheduleSearch
+} from '../searchutils.js';
 
 const MENU_TIMEOUT = 300000;
 
