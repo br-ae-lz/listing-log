@@ -112,7 +112,7 @@ export async function sendListings() {
  * searchWait, added to ease traffic and make automated requests seem more human.
  ********************************************************************************************************/
 export function scheduleSearch() {
-		searchTimeout = setTimeout(sendListings, searchWait_ms + Math.floor(Math.random() * searchWait_ms) + 1);
+	searchTimeout = setTimeout(sendListings, searchWait_ms + Math.floor(Math.random() * searchWait_ms) + 1);
 }
 
 /********************************************************************************************************

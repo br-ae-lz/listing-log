@@ -6,7 +6,7 @@ import {
 	StringSelectMenuBuilder,
 	StringSelectMenuOptionBuilder
 } from 'discord.js';
-import { searchConfig } from '../searchutils.js';
+import { searchConfig, searchTimeout } from '../searchutils.js';
 
 const MENU_TIMEOUT = 300000;
 
@@ -195,9 +195,11 @@ async function executeSearchTiming(menuChoice, menu) {
 			case 'autosearch':
 				if (autoSearchButton.data.style === ButtonStyle.Primary) {
 					searchConfig.autoSearch = false;
+					clearTimeout(searchTimeout);
 					autoSearchButton.setStyle(ButtonStyle.Secondary);
 				} else {
 					searchConfig.autoSearch = true;
+					scheduleSearch();
 					autoSearchButton.setStyle(ButtonStyle.Primary);
 				}
 				break;
