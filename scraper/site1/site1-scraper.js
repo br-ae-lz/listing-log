@@ -3,7 +3,7 @@
  * 		  LISTINGS_PER_SEARCH. Most recently posted listings are returned first, with any marked as seen
  * 		  being discarded. In debug mode, no listings are discarded regardless of their status or content.
  ********************************************************************************************************/
-export function getSite1Listings() {
+export async function getSite1Listings(redisClient) {
 	let listings = [];
 	
 	let newListing = {

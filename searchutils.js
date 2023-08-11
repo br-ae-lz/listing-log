@@ -1,4 +1,5 @@
 import { EmbedBuilder } from 'discord.js';
+import { createClient } from 'redis';
 import { getSite1Listings } from './scraper/site1/site1-scraper.js';
 import { getSite2Listings } from './scraper/site2/site2-scraper.js';
 
@@ -36,57 +37,70 @@ export async function sendListings() {
 	console.log(`Searching for listings...`);
 	await channels.statusChannel.send(`Searching...`);
 
-	if (searchConfig.searchSite1) {
-		try {
-			let site1Embeds = [];
-			let site1Listings = await getSite1Listings();
-			
-			// Propagate embed array with scraped listing data
-			for (let i = 0; i < searchConfig.numListings; ++i) {
-				if (site1Listings[i] === undefined) 
-					continue;
+	const redisClient = createClient();
+	redisClient.on('error', err => console.log('Error creating Redis client', err));
+	await redisClient.connect();
 
+	if (searchConfig.searchSite1) {
+		let site1Embeds = [];
+		let site1Listings = await getSite1Listings(redisClient);
+
+		try {
+			// Propagate embed array with listing data, marking any that succeed as 'seen'
+			for (const listing of site1Listings) {
 				const currentEmbed = new EmbedBuilder()
 					.setColor(0xc4c4c4)
-					.setTitle(site1Listings[i].title)
-					.addFields({ name: site1Listings[i].subheading, value: site1Listings[i].description})
-					.setThumbnail(site1Listings[i].image)
-					.setURL(site1Listings[i].url)
-					.setFooter({ text: site1Listings[i].postDate + '  •  id: ' + site1Listings[i].id})
+					.setTitle(listing.title)
+					.addFields({ name: listing.subheading, value: listing.description})
+					.setThumbnail(listing.image)
+					.setURL(listing.url)
+					.setFooter({ text: listing.postDate + '  •  id: ' + listing.id})
 				site1Embeds.push(currentEmbed);
-			}
 
-			if (site1Embeds.length > 0)
-				await channels.searchChannel.send({ content: '# Site 1', embeds: site1Embeds });
+				if (!searchConfig.debugMode)
+					await redisClient.set(`site1:${listing.id}`, 1);
+			}
 		}
 		catch (e) {
 			console.log(e);
 			await channels.statusChannel.send('Site 1 encountered an error while fetching listings!');
 		}
+
+		if (site1Embeds.length > 0)
+			await channels.searchChannel.send({ content: '# Site 1', embeds: site1Embeds });
 	}
 
 	if (searchConfig.searchSite2) {
 		let site2Embeds = [];
-		let site2Listings = await getSite2Listings();
+		let site2Listings = await getSite2Listings(redisClient);
 		
-		for (let i = 0; i < searchConfig.numListings; ++i) {
-			if (site2Listings[i] === undefined) 
-				continue;
+		try {
+			for (const listing of site2Listings) {
+				const currentEmbed = new EmbedBuilder()
+					.setColor(0xc4c4c4)
+					.setTitle(listing.title)
+					.addFields({ name: listing.subheading, value: listing.description})
+					.setThumbnail(listing.image)
+					.setURL(listing.url)
+					.setFooter({ text: listing.postDate + '  •  id: ' + listing.id})
+				site2Embeds.push(currentEmbed);
 
-			const currentEmbed = new EmbedBuilder()
-				.setColor(0xc4c4c4)
-				.setTitle(site2Listings[i].title)
-				.addFields({ name: site2Listings[i].subheading, value: site2Listings[i].description})
-				.setThumbnail(site2Listings[i].image)
-				.setURL(site2Listings[i].url)
-				.setFooter({ text: site2Listings[i].postDate + '  •  id: ' + site2Listings[i].id})
-			site2Embeds.push(currentEmbed);
+				if (!searchConfig.debugMode)
+					await redisClient.set(`site2:${listing.id}`, 1);
+			}
+		}
+		catch (e) {
+			console.log(e);
+			await channels.statusChannel.send('Site 2 encountered an error while fetching listings!');
 		}
 
 		if (site2Embeds.length > 0)
 			await channels.searchChannel.send({ content: '# Site 2', embeds: site2Embeds });
 	}
 
+	if (!searchConfig.debugMode) await redisClient.bgSave();
+	await redisClient.disconnect();
+	
 	if (searchConfig.autoSearch)
 		scheduleSearch();
 }

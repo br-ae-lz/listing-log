@@ -4,7 +4,7 @@ import { searchConfig } from '../searchutils.js';
 export const command = {
 	data: new SlashCommandBuilder()
 		.setName('toggledebug')
-		.setDescription('Toggle debug mode, which allows any listings to be sent'),
+		.setDescription('Toggle debug mode, which removes all search filters and marks no listings sent as "seen"'),
 
 	async execute(interaction) {
 		searchConfig.debugMode = !searchConfig.debugMode;
