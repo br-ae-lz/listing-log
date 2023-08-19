@@ -4,7 +4,8 @@ import {
     ButtonStyle, 
     ActionRowBuilder,
     StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder
+    StringSelectMenuOptionBuilder,
+    TextInputStyle
 } from 'discord.js';
 import { 
     searchConfig, 
@@ -178,6 +179,12 @@ async function executeSearchTiming(menuChoice, menu) {
         .addComponents(autoSearchButton, startupSearchButton);
 
     // Prepare search wait row 
+    const searchWaitInput = new TextInputBuilder()
+        .setCustomId('searchWait')
+        .setLabel('(placeholder label)')
+        .setStyle(TextInputStyle.Short);
+    const searchWaitRow = new ActionRowBuilder()
+        .addComponents(searchWaitInput);
     
     // Prepare back row
     const backButton = new ButtonBuilder()
@@ -187,7 +194,7 @@ async function executeSearchTiming(menuChoice, menu) {
     const backRow = new ActionRowBuilder()
         .addComponents(backButton);
 
-    await menuChoice.update({ content: '**Search Timing**', components: [toggleRow, backRow] });
+    await menuChoice.update({ content: '**Search Timing**', components: [toggleRow, searchWaitInput, backRow] });
 
     while (true) {
         const selection = await menu.awaitMessageComponent({ time: MENU_TIMEOUT });
@@ -266,13 +273,13 @@ async function executeSearchFormatting(menuChoice, menu) {
         switch (selection.customId) {
             case 'changeNum1':
                 console.log('changeNum1');
-                break;
             case 'changeNum2':
                 console.log('changeNum2');
-                break;
             case 'changeNum3':
                 console.log('changeNum3');
-                break;
+                // There's probably something in this object I can look for, but if it isn't the customId then
+                // I may need to revert this to a conditional
+                console.log(selection);
 
             case 'back':
                 return selection;
