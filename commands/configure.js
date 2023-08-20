@@ -252,7 +252,28 @@ async function executeSearchFormatting(menuChoice, menu) {
                 .setValue('changeNum2'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('3')
-                .setValue('changeNum3')
+                .setValue('changeNum3'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('4')
+                .setValue('changeNum4'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('5')
+                .setValue('changeNum5'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('6')
+                .setValue('changeNum6'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('7')
+                .setValue('changeNum7'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('8')
+                .setValue('changeNum8'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('9')
+                .setValue('changeNum9'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('10')
+                .setValue('changeNum10')
         );	
     const numListingsRow = new ActionRowBuilder()
         .addComponents(selectNumListings);
@@ -269,18 +290,12 @@ async function executeSearchFormatting(menuChoice, menu) {
 
     while (true) {
         const selection = await menu.awaitMessageComponent( { time: MENU_TIMEOUT });
-        // TODO: Fix this -- this isn't the right way to handle multiselects
-        switch (selection.customId) {
-            case 'changeNum1':
-                console.log('changeNum1');
-            case 'changeNum2':
-                console.log('changeNum2');
-            case 'changeNum3':
-                console.log('changeNum3');
-                // There's probably something in this object I can look for, but if it isn't the customId then
-                // I may need to revert this to a conditional
-                console.log(selection);
 
+        switch (selection.customId) {
+            case 'numlistings':
+                searchConfig.numListings = selection.values[0].slice(9);
+                selectNumListings.setPlaceholder(`Number of listings returned per site: ${searchConfig.numListings}`);
+                break;
             case 'back':
                 return selection;
         }
