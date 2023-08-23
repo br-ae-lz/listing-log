@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 import { 
     sendListings, 
     channels, 
-    searchConfig, 
+    searchTimeConfig, 
     scheduleSearch
 } from './searchutils.js';
 
@@ -51,8 +51,8 @@ client.once(Events.ClientReady, async c => {
     
     await channels.statusChannel.send('Started!');
 
-    if (searchConfig.startupSearch) await sendListings();
-    else if (searchConfig.autoSearch) scheduleSearch();
+    if (searchTimeConfig.startupSearch) await sendListings();
+    else if (searchTimeConfig.autoSearch) scheduleSearch();
 });
 
 // Interaction routine: Handle slash commands

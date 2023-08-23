@@ -1,14 +1,18 @@
-import { 
+import {
     SlashCommandBuilder, 
     ButtonBuilder, 
     ButtonStyle, 
     ActionRowBuilder,
     StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder,
-    TextInputStyle
+    TextInputStyle,
+    TextInputBuilder,
+    ModalBuilder
 } from 'discord.js';
 import { 
-    searchConfig, 
+    searchFilterConfig, 
+	searchTimeConfig,
+	searchFormatConfig,
     searchTimeout,
     scheduleSearch
 } from '../searchutils.js';
@@ -89,11 +93,11 @@ async function executeSearchFilters(menuChoice, menu) {
     const site1Button = new ButtonBuilder()
         .setCustomId('site1')
         .setLabel('Site 1')
-        .setStyle((searchConfig.searchSite1) ? ButtonStyle.Primary : ButtonStyle.Secondary);
+        .setStyle((searchFilterConfig.searchSite1) ? ButtonStyle.Primary : ButtonStyle.Secondary);
     const site2Button = new ButtonBuilder()
         .setCustomId('site2')
         .setLabel('Site 2')
-        .setStyle((searchConfig.searchSite2) ? ButtonStyle.Primary : ButtonStyle.Secondary);
+        .setStyle((searchFilterConfig.searchSite2) ? ButtonStyle.Primary : ButtonStyle.Secondary);
     const sitesRow = new ActionRowBuilder()
         .addComponents(site1Button, site2Button);
 
@@ -101,7 +105,7 @@ async function executeSearchFilters(menuChoice, menu) {
     const allFemaleButton = new ButtonBuilder()
         .setCustomId('allfemale')
         .setLabel('Exclude \'All Female\'')
-        .setStyle((searchConfig.excludeAllFemale) ? ButtonStyle.Primary : ButtonStyle.Secondary);
+        .setStyle((searchFilterConfig.excludeAllFemale) ? ButtonStyle.Primary : ButtonStyle.Secondary);
     const filtersRow = new ActionRowBuilder()
         .addComponents(allFemaleButton);
 
@@ -124,29 +128,29 @@ async function executeSearchFilters(menuChoice, menu) {
         switch (selection.customId) {
             case 'site1':
                 if (site1Button.data.style === ButtonStyle.Primary) {
-                    searchConfig.searchSite1 = false;
+                    searchFilterConfig.searchSite1 = false;
                     site1Button.setStyle(ButtonStyle.Secondary);
                 } else {
-                    searchConfig.searchSite1 = true;
+                    searchFilterConfig.searchSite1 = true;
                     site1Button.setStyle(ButtonStyle.Primary);
                 }
                 break;
             case 'site2':
                 if (site2Button.data.style === ButtonStyle.Primary) {
-                    searchConfig.searchSite2 = false;
+                    searchFilterConfig.searchSite2 = false;
                     site2Button.setStyle(ButtonStyle.Secondary);
                 } else {
-                    searchConfig.searchSite2 = true;
+                    searchFilterConfig.searchSite2 = true;
                     site2Button.setStyle(ButtonStyle.Primary);
                 }
                 break;
             
             case 'allfemale':
                 if (allFemaleButton.data.style === ButtonStyle.Primary) {
-                    searchConfig.excludeAllFemale = false;
+                    searchFilterConfig.excludeAllFemale = false;
                     allFemaleButton.setStyle(ButtonStyle.Secondary);
                 } else {
-                    searchConfig.excludeAllFemale = true;
+                    searchFilterConfig.excludeAllFemale = true;
                     allFemaleButton.setStyle(ButtonStyle.Primary);
                 }
                 break;
@@ -170,21 +174,32 @@ async function executeSearchTiming(menuChoice, menu) {
     const autoSearchButton = new ButtonBuilder()
         .setCustomId('autosearch')
         .setLabel('Auto-search')
-        .setStyle((searchConfig.autoSearch) ? ButtonStyle.Primary : ButtonStyle.Secondary);
+        .setStyle((searchTimeConfig.autoSearch) ? ButtonStyle.Primary : ButtonStyle.Secondary);
     const startupSearchButton = new ButtonBuilder()
         .setCustomId('startupsearch')
         .setLabel('Search on Startup')
-        .setStyle((searchConfig.startupSearch) ? ButtonStyle.Primary : ButtonStyle.Secondary);
+        .setStyle((searchTimeConfig.startupSearch) ? ButtonStyle.Primary : ButtonStyle.Secondary);
     const toggleRow = new ActionRowBuilder()
         .addComponents(autoSearchButton, startupSearchButton);
 
-    // Prepare search wait row 
+    // Prepare search wait form and row w/ button that calls modal
+    const modal = new ModalBuilder()
+        .setCustomId('searchTimingModal')
+        .setTitle('testModal');
     const searchWaitInput = new TextInputBuilder()
-        .setCustomId('searchWait')
-        .setLabel('(placeholder label)')
+        .setCustomId('searchwait')
+        .setLabel('Time to wait (in min):')
         .setStyle(TextInputStyle.Short);
-    const searchWaitRow = new ActionRowBuilder()
+    const searchWaitForm = new ActionRowBuilder()
         .addComponents(searchWaitInput);
+    modal.addComponents(searchWaitForm);
+    
+    const searchWaitButton = new ButtonBuilder()
+        .setCustomId('searchwait')
+        .setLabel('Change time between searches')
+        .setStyle(ButtonStyle.Success)
+    const searchWaitRow = new ActionRowBuilder()
+        .addComponents(searchWaitButton);
     
     // Prepare back row
     const backButton = new ButtonBuilder()
@@ -194,7 +209,7 @@ async function executeSearchTiming(menuChoice, menu) {
     const backRow = new ActionRowBuilder()
         .addComponents(backButton);
 
-    await menuChoice.update({ content: '**Search Timing**', components: [toggleRow, searchWaitInput, backRow] });
+    await menuChoice.update({ content: '**Search Timing**', components: [toggleRow, searchWaitRow, backRow] });
 
     while (true) {
         const selection = await menu.awaitMessageComponent({ time: MENU_TIMEOUT });
@@ -205,30 +220,39 @@ async function executeSearchTiming(menuChoice, menu) {
             //  same setting -- the result always matches the final button press)
             case 'autosearch':
                 if (autoSearchButton.data.style === ButtonStyle.Primary) {
-                    searchConfig.autoSearch = false;
+                    searchTimeConfig.autoSearch = false;
                     clearTimeout(searchTimeout);
                     autoSearchButton.setStyle(ButtonStyle.Secondary);
                 } else {
-                    searchConfig.autoSearch = true;
+                    searchTimeConfig.autoSearch = true;
                     scheduleSearch();
                     autoSearchButton.setStyle(ButtonStyle.Primary);
                 }
                 break;
             case 'startupsearch':
                 if (startupSearchButton.data.style === ButtonStyle.Primary) {
-                    searchConfig.startupSearch = false;
+                    searchTimeConfig.startupSearch = false;
                     startupSearchButton.setStyle(ButtonStyle.Secondary);
                 } else {
-                    searchConfig.startupSearch = true;
+                    searchTimeConfig.startupSearch = true;
                     startupSearchButton.setStyle(ButtonStyle.Primary);
                 }
                 break;
+            case 'searchwait':
+                await selection.showModal(modal);
+                // Handle modal response... Don't quit out of here until we've processed it.
+                // If there's some response that isn't a modal interaction (i.e. a cancel or
+                // an actual response), then have the menu warn a modal is still in use
+                //   (Honestly, no clue how to do a warning. Maybe an ephemeral response)
+                const modalResponse = await selection.awaitModalSubmit({ time: MENU_TIMEOUT });
+                console.log(modalResponse.fields.getTextInputValue('searchwait'));
+                
+                continue;
 
             case 'back':
                 return selection;
         }
-
-        await selection.update({ components: [toggleRow, backRow] });
+        await selection.update({ components: [toggleRow, searchWaitRow, backRow] });
     }
 }
 
@@ -239,10 +263,9 @@ async function executeSearchTiming(menuChoice, menu) {
  ********************************************************************************************************/
 async function executeSearchFormatting(menuChoice, menu) {
     // Prepare number of listings row
-    // (Future: Range from 1-10, as there are 10 embeds max per message)
     const selectNumListings = new StringSelectMenuBuilder()
         .setCustomId('numlistings')
-        .setPlaceholder(`Number of listings returned per site: ${searchConfig.numListings}`)
+        .setPlaceholder(`Number of listings returned per site: ${searchFormatConfig.numListings}`)
         .addOptions(
             new StringSelectMenuOptionBuilder()
                 .setLabel('1')
@@ -278,6 +301,14 @@ async function executeSearchFormatting(menuChoice, menu) {
     const numListingsRow = new ActionRowBuilder()
         .addComponents(selectNumListings);
 
+    // Prepare listing character limit row
+    const charLimitInput = new TextInputBuilder()
+        .setCustomId("charlimit")
+        .setLabel('placeholder')
+        .setStyle(TextInputStyle.Short);
+    const charLimitRow = new ActionRowBuilder()
+        .addComponents(charLimitInput);
+
     // Prepare back row
     const backButton = new ButtonBuilder()
         .setCustomId('back')
@@ -293,9 +324,10 @@ async function executeSearchFormatting(menuChoice, menu) {
 
         switch (selection.customId) {
             case 'numlistings':
-                searchConfig.numListings = selection.values[0].slice(9);
-                selectNumListings.setPlaceholder(`Number of listings returned per site: ${searchConfig.numListings}`);
+                searchFormatConfig.numListings = selection.values[0].slice(9);
+                selectNumListings.setPlaceholder(`Number of listings returned per site: ${searchFormatConfig.numListings}`);
                 break;
+
             case 'back':
                 return selection;
         }

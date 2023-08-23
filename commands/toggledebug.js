@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { searchConfig } from '../searchutils.js';
+import { searchFilterConfig } from '../searchutils.js';
 
 export const command = {
     data: new SlashCommandBuilder()
@@ -7,9 +7,9 @@ export const command = {
         .setDescription('Toggle debug mode, which removes all search filters and marks no listings sent as "seen"'),
 
     async execute(interaction) {
-        searchConfig.debugMode = !searchConfig.debugMode;
+        searchFilterConfig.debugMode = !searchFilterConfig.debugMode;
 
-        if (!searchConfig.debugMode) {
+        if (!searchFilterConfig.debugMode) {
             await interaction.reply('Debug mode turned off.');
         } else {
             await interaction.reply('Debug mode turned on.');

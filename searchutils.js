@@ -10,24 +10,25 @@ const channels = {
 };
 
 // Default search configs (exported to be changed by commands during runtime)
-const searchConfig = {
-    searchSite1: true,			// Listing filtering configs
+const searchFilterConfig = {
+    searchSite1: true,
     searchSite2: false,
     excludeAllFemale: true,
-    debugMode: false,			
-    
-    autoSearch: false,			// Search timing configs
-    startupSearch: true,
-
-    numListings: 5,				// Search formatting configs
+    debugMode: false
+}
+const searchTimeConfig = {
+    autoSearch: false,
+    startupSearch: false,
+	searchWait_ms: 5*60*1000
+}
+const searchFormatConfig = {
+    numListings: 5,				
     descCharLimit: 150
-};
+}
 
-let searchWait = 5;							// Minimum time to wait between searches in minutes
-let searchWait_ms = searchWait*60*1000;		// searchWait in milliseconds
 let searchTimeout;
 
-export { channels, searchConfig, searchTimeout };
+export { channels, searchFilterConfig, searchTimeConfig, searchFormatConfig, searchTimeout };
 
 /********************************************************************************************************
  * Scrapes for new listings and sends any that are found to the search channel. Upon 
@@ -41,7 +42,7 @@ export async function sendListings() {
     redisClient.on('error', err => console.log('Error creating Redis client', err));
     await redisClient.connect();
 
-    if (searchConfig.searchSite1) {
+    if (searchFilterConfig.searchSite1) {
         let site1Embeds = [];
         let site1Listings = await getSite1Listings(redisClient);
 
@@ -57,7 +58,7 @@ export async function sendListings() {
                     .setFooter({ text: listing.postDate + '  •  id: ' + listing.id})
                 site1Embeds.push(currentEmbed);
 
-                if (!searchConfig.debugMode)
+                if (!searchFilterConfig.debugMode)
                     await redisClient.set(`site1:${listing.id}`, 1);
             }
         }
@@ -70,7 +71,7 @@ export async function sendListings() {
             await channels.searchChannel.send({ content: '# Site 1', embeds: site1Embeds });
     }
 
-    if (searchConfig.searchSite2) {
+    if (searchFilterConfig.searchSite2) {
         let site2Embeds = [];
         let site2Listings = await getSite2Listings(redisClient);
         
@@ -85,7 +86,7 @@ export async function sendListings() {
                     .setFooter({ text: listing.postDate + '  •  id: ' + listing.id})
                 site2Embeds.push(currentEmbed);
 
-                if (!searchConfig.debugMode)
+                if (!searchFilterConfig.debugMode)
                     await redisClient.set(`site2:${listing.id}`, 1);
             }
         }
@@ -98,27 +99,21 @@ export async function sendListings() {
             await channels.searchChannel.send({ content: '# Site 2', embeds: site2Embeds });
     }
 
-    if (!searchConfig.debugMode) await redisClient.bgSave();
+    if (!searchFilterConfig.debugMode) await redisClient.bgSave();
     await redisClient.disconnect();
     
-    if (searchConfig.autoSearch)
+    if (searchTimeConfig.autoSearch)
         scheduleSearch();
 }
 
 /********************************************************************************************************
- * Schedules a future call to sendListings. (Basically, an auto-search.)
+ * Schedules a future call to sendListings. (Basically, queues up an auto-search.)
  * 
- * Wait time is searchWait plus a random length of time whose upper bound is 
- * searchWait, added to ease traffic and make automated requests seem more human.
+ * Minimum search wait time follows configuration. If random sway is enabled, a random length
+ * of time whose upper bound is the minimum wait time is added. (This ideally eases traffic and
+ * makes automated requests seem more human.)
  ********************************************************************************************************/
 export function scheduleSearch() {
-    searchTimeout = setTimeout(sendListings, searchWait_ms + Math.floor(Math.random() * searchWait_ms) + 1);
-}
-
-/********************************************************************************************************
- * Assigns a new value to searchWait (and, consequently, searchWait_ms.)
- ********************************************************************************************************/
-export function setSearchWait(newValue) {
-    searchWait = newValue;
-    searchWait_ms = searchWait*60*1000;
+    searchTimeout = setTimeout(sendListings, 
+		searchTimeConfig.searchWait_ms + Math.floor(Math.random() * searchTimeConfig.searchWait_ms) + 1);
 }
