@@ -19,7 +19,7 @@ export async function getSite2Listings(redisClient) {
 
 	newListing = {
 		title: 'Second Site2 listing',
-		// url: 'link-to-listing'
+		// url: 'link-to-listing',
 		image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Placeholder_view_vector.svg/681px-Placeholder_view_vector.svg.png',
 		subheading: 'Listing subheader',
 		description: 'Some sort of description...',

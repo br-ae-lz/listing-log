@@ -13,18 +13,18 @@ export async function getSite1Listings(redisClient) {
 		subheading: 'Listing subheader',
 		description: 'Some sort of description...',
 		postDate: 'Posted at some point',
-		id: 34982834834
+		id: 'Placeholder'
 	}
 	listings.push(newListing);
 
 	newListing = {
-		title: 'Second Site2 listing',
+		title: 'Second Site1 listing',
 		// url: 'link-to-listing',
 		image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Placeholder_view_vector.svg/681px-Placeholder_view_vector.svg.png',
 		subheading: 'Listing subheader',
 		description: 'Some sort of description...',
 		postDate: 'Posted at some point',
-		id: 43534537234
+		id: 'Placeholder'
 	}
 	listings.push(newListing);
 
